@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pending Issuers</title>
+<style>
+body {
+    font-family: Arial;
+    background:#f4f6f9;
+    padding:30px;
+}
+
+h2 {
+    margin-bottom:20px;
+}
+
+table {
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+th {
+    background:#f39c12;
+    color:white;
+    padding:12px;
+    text-align:left;
+}
+
+td {
+    padding:12px;
+    border-bottom:1px solid #ddd;
+}
+
+tr:hover {
+    background:#f1f1f1;
+}
+
+select {
+    padding:6px;
+    margin-right:8px;
+    border-radius:5px;
+}
+
+.btn-approve {
+    background:#27ae60;
+    color:white;
+    border:none;
+    padding:6px 12px;
+    border-radius:5px;
+    cursor:pointer;
+    margin-right:5px;
+}
+
+.btn-approve:hover {
+    background:#219150;
+}
+
+.btn-reject {
+    background:#c0392b;
+    color:white;
+    border:none;
+    padding:6px 12px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.btn-reject:hover {
+    background:#a93226;
+}
+
+.badge {
+    background:#f39c12;
+    color:white;
+    padding:5px 10px;
+    border-radius:15px;
+    font-size:12px;
+}
+
+.back-btn {
+    margin-bottom:20px;
+    padding:8px 15px;
+    cursor:pointer;
+}
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 250px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: none;
+    z-index: 9999;
+    animation: slideIn 0.4s ease;
+}
+
+.toast.success { background:#27ae60; }
+.toast.error { background:#c0392b; }
+.toast.warning { background:#f39c12; }
+
+@keyframes slideIn {
+    from { opacity:0; transform:translateX(50px); }
+    to { opacity:1; transform:translateX(0); }
+}
+</style>
+</head>
+<body>
+
+<h2>Pending Issuers</h2>
+
+<button class="back-btn" onclick="window.location.href='/admin'">← Back</button>
+
+<table id="table">
+<tr>
+<th>ID</th>
+<th>Organization</th>
+<th>Type</th>
+<th>Email</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</table>
+
+<div id="toast" class="toast"></div>
+
+<script>
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+async function loadPending(){
+    const res = await fetch("/api/admin/pending_issuers");
+    const issuers = await res.json();
+
+    const table = document.getElementById("table");
+
+    issuers.forEach(i=>{
+        const row = table.insertRow();
+
+        row.insertCell(0).innerText = i.issuerId;
+        row.insertCell(1).innerText = i.organizationName;
+        row.insertCell(2).innerText = i.organizationType;
+        row.insertCell(3).innerText = i.email;
+        row.insertCell(4).innerHTML = `<span class="badge">PENDING</span>`;
+
+        row.insertCell(5).innerHTML = `
+            <button class="btn-approve" onclick="approve('${i.issuerId}')">Approve</button>
+            <button class="btn-reject" onclick="reject('${i.issuerId}')">Reject</button>
+        `;
+    });
+}
+
+async function approve(id){
+
+    const res = await fetch("/api/admin/approve",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            issuerId:id
+        })
+    });
+
+    const data = await res.json();
+
+    if(data.status === "success"){
+        showToast("Issuer approved successfully", "success");
+        setTimeout(()=>location.reload(), 1000);
+    } else {
+        showToast(data.error || "Error approving issuer", "error");
+    }
+}
+
+async function reject(id){
+    const res = await fetch("/api/admin/reject",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({issuerId:id})
+    });
+
+    const data = await res.json();
+
+    if(data.status === "success"){
+        showToast("Issuer rejected successfully", "warning");
+        setTimeout(()=>location.reload(), 1000);
+    } else {
+        showToast(data.error || "Error rejecting issuer", "error");
+    }
+}
+
+loadPending();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard - CertChain</title>
+<style>
+
+body{
+    margin:0;
+    font-family: Arial, sans-serif;
+    display:flex;
+    background:#f4f6f9;
+}
+
+/* Sidebar */
+.sidebar{
+    width:230px;
+    background:#2c3e50;
+    height:100vh;
+    color:white;
+    padding-top:25px;
+}
+
+.sidebar h2{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.sidebar a{
+    display:block;
+    padding:14px 20px;
+    color:white;
+    text-decoration:none;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.sidebar a:hover,
+.sidebar a.active{
+    background:#34495e;
+}
+
+/* Content Area */
+.content{
+    flex:1;
+    padding:30px;
+    overflow:auto;
+}
+
+.section-title{
+    padding:12px 20px;
+    color:white;
+    border-radius:6px;
+    margin-bottom:20px;
+    font-size:18px;
+}
+
+/* Dynamic Header Colors */
+.transactions-header{ background:#2980b9; }
+.approved-header{ background:#27ae60; }
+.pending-header{ background:#f39c12; }
+.rejected-header{ background:#c0392b; }
+
+/* Table Styling */
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+th{
+    background:#2c3e50;
+    color:white;
+    padding:12px;
+    text-align:left;
+}
+
+td{
+    padding:12px;
+    border-bottom:1px solid #ddd;
+}
+
+tr:hover{
+    background:#f1f1f1;
+}
+
+/* Status Badges */
+.badge{
+    padding:5px 10px;
+    border-radius:15px;
+    font-size:12px;
+    color:white;
+}
+
+.approved{ background:#27ae60; }
+.pending{ background:#f39c12; }
+.rejected{ background:#c0392b; }
+
+/* Buttons */
+button{
+    padding:6px 10px;
+    margin:3px;
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+}
+
+.btn-approve{ background:#27ae60; color:white; }
+.btn-reject{ background:#c0392b; color:white; }
+
+/* Dropdown */
+select{
+    padding:6px;
+    border-radius:4px;
+}
+
+/* Fade Animation */
+.fade{
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn{
+    from{opacity:0;}
+    to{opacity:1;}
+}
+
+.card-container{
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+}
+
+.stat-card{
+    flex:1;
+    min-width:200px;
+    padding:25px;
+    border-radius:10px;
+    color:white;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.stat-card:hover{
+    transform:translateY(-5px);
+}
+
+.blue{ background:#2980b9; }
+.green{ background:#27ae60; }
+.orange{ background:#f39c12; }
+.red{ background:#c0392b; }
+
+.stat-number{
+    font-size:28px;
+    font-weight:bold;
+}
+
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 250px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: none;
+    z-index: 9999;
+    animation: slideIn 0.4s ease;
+}
+
+.toast.success { background:#27ae60; }
+.toast.error { background:#c0392b; }
+.toast.warning { background:#f39c12; }
+
+@keyframes slideIn {
+    from { opacity:0; transform:translateX(50px); }
+    to { opacity:1; transform:translateX(0); }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+    <h2>CertChain</h2>
+    <a id="menu-dashboard" onclick="loadDashboard()">Dashboard</a>
+    <a id="menu-transactions" onclick="loadTransactions()">Transactions</a>
+    <a id="menu-approved" onclick="loadApproved()">Approved Issuers</a>
+    <a id="menu-pending" onclick="loadPending()">Pending Issuers</a>
+    <a id="menu-rejected" onclick="loadRejected()">Rejected Issuers</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="content fade" id="contentArea">
+    <div id="dashboardView"></div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+/* Utility to highlight active menu */
+function setActive(id){
+    document.querySelectorAll(".sidebar a").forEach(a=>a.classList.remove("active"));
+
+    if(id){
+        const element = document.getElementById(id);
+        if(element){
+            element.classList.add("active");
+        }
+    }
+}
+
+/* ---------------- TRANSACTIONS ---------------- */
+async function loadTransactions(){
+    setActive("menu-transactions");
+
+    try {
+        const res = await fetch("/api/admin/transactions");
+        const data = await res.json();
+
+        let html = `
+            <div class="section-title transactions-header">
+                Blockchain Transactions
+            </div>
+            <table>
+            <tr>
+            <th>Transaction ID</th>
+            <th>Issuer</th>
+            <th>Timestamp</th>
+            </tr>
+        `;
+
+        if(data.length === 0){
+            html += `<tr><td colspan="3">No transactions found</td></tr>`;
+        }
+
+        data.forEach(tx=>{
+            html += `
+                <tr>
+                <td>${tx.transactionHash}</td>
+                <td>${tx.issuer}</td>
+                <td>${tx.timestamp}</td>
+                </tr>
+            `;
+        });
+
+        html += "</table>";
+        document.getElementById("contentArea").innerHTML = html;
+
+    } catch {
+        showToast("Error loading transactions", "error");
+    }
+}
+
+/* ---------------- APPROVED ---------------- */
+async function loadApproved(){
+    setActive("menu-approved");
+
+    try {
+        const res = await fetch("/api/admin/approved_issuers");
+        const data = await res.json();
+
+        let html = `
+            <div class="section-title approved-header">
+                Approved Issuers
+            </div>
+            <table>
+            <tr>
+            <th>ID</th>
+            <th>Organization</th>
+            <th>Email</th>
+            <th>Status</th>
+            </tr>
+        `;
+
+        if(data.length === 0){
+            html += `<tr><td colspan="4">No approved issuers</td></tr>`;
+        }
+
+        data.forEach(i=>{
+            html += `
+                <tr>
+                <td>${i.issuerId}</td>
+                <td>${i.organizationName}</td>
+                <td>${i.email}</td>
+                <td><span class="badge approved">APPROVED</span></td>
+                </tr>
+            `;
+        });
+
+        html += "</table>";
+        document.getElementById("contentArea").innerHTML = html;
+
+    } catch {
+        showToast("Error loading approved issuers", "error");
+    }
+}
+
+/* ---------------- PENDING ---------------- */
+async function loadPending(){
+    setActive("menu-pending");
+
+    try {
+        const res = await fetch("/api/admin/pending_issuers");
+        const issuers = await res.json();
+
+        let html = `
+            <div class="section-title pending-header">
+                Pending Issuers
+            </div>
+            <table>
+            <tr>
+            <th>ID</th>
+            <th>Organization</th>
+            <th>Email</th>
+            <th>Action</th>
+            </tr>
+        `;
+
+        if(issuers.length === 0){
+            html += `<tr><td colspan="4">No pending issuers</td></tr>`;
+        }
+
+        issuers.forEach(i=>{
+            html += `
+                <tr>
+                <td>${i.issuerId}</td>
+                <td>${i.organizationName}</td>
+                <td>${i.email}</td>
+                <td>
+                    <button class="btn-approve" onclick="approve('${i.issuerId}')">Approve</button>
+                    <button class="btn-reject" onclick="reject('${i.issuerId}')">Reject</button>
+                </td>
+                </tr>
+            `;
+        });
+
+        html += "</table>";
+        document.getElementById("contentArea").innerHTML = html;
+
+    } catch {
+        showToast("Error loading pending issuers", "error");
+    }
+}
+
+/* ---------------- APPROVE ---------------- */
+async function approve(id) {
+    try {
+        const res = await fetch("/api/admin/approve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ issuerId: id })
+        });
+
+        const data = await res.json();
+
+        if(data.status === "success"){
+            showToast("Issuer Approved ✅", "success");
+            loadPending();
+        } else {
+            showToast(data.error || "Failed ❌", "error");
+        }
+
+    } catch {
+        showToast("Server error ❌", "error");
+    }
+}
+
+/* ---------------- REJECT ---------------- */
+async function reject(id){
+    try {
+        const res = await fetch("/api/admin/reject",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({issuerId:id})
+        });
+
+        const data = await res.json();
+
+        if(data.status === "success"){
+            showToast("Issuer Rejected", "warning");
+            loadPending();
+        } else {
+            showToast("Error rejecting issuer", "error");
+        }
+
+    } catch {
+        showToast("Server error", "error");
+    }
+}
+
+/* ---------------- REJECTED ---------------- */
+async function loadRejected(){
+    setActive("menu-rejected");
+
+    try {
+        const res = await fetch("/api/admin/rejected_issuers");
+        const data = await res.json();
+
+        let html = `
+            <div class="section-title rejected-header">
+                Rejected Issuers
+            </div>
+            <table>
+            <tr>
+            <th>ID</th>
+            <th>Organization</th>
+            <th>Email</th>
+            <th>Status</th>
+            </tr>
+        `;
+
+        if(data.length === 0){
+            html += `<tr><td colspan="4">No rejected issuers</td></tr>`;
+        }
+
+        data.forEach(i=>{
+            html += `
+                <tr>
+                <td>${i.issuerId}</td>
+                <td>${i.organizationName}</td>
+                <td>${i.email}</td>
+                <td><span class="badge rejected">REJECTED</span></td>
+                </tr>
+            `;
+        });
+
+        html += "</table>";
+        document.getElementById("contentArea").innerHTML = html;
+
+    } catch {
+        showToast("Error loading rejected issuers", "error");
+    }
+}
+
+/* ---------------- DASHBOARD ---------------- */
+async function loadDashboard(){
+    setActive("menu-dashboard");
+
+    try {
+        const res = await fetch("/api/admin/stats");
+        const data = await res.json();
+
+        let html = `
+            <h2>Admin Dashboard</h2>
+            <div class="card-container">
+
+                <div class="stat-card blue" onclick="loadTransactions()">
+                    <div>Total Transactions</div>
+                    <div class="stat-number">${data.transactions}</div>
+                </div>
+
+                <div class="stat-card green" onclick="loadApproved()">
+                    <div>Approved Issuers</div>
+                    <div class="stat-number">${data.approved}</div>
+                </div>
+
+                <div class="stat-card orange" onclick="loadPending()">
+                    <div>Pending Issuers</div>
+                    <div class="stat-number">${data.pending}</div>
+                </div>
+
+                <div class="stat-card red" onclick="loadRejected()">
+                    <div>Rejected Issuers</div>
+                    <div class="stat-number">${data.rejected}</div>
+                </div>
+
+            </div>
+        `;
+
+        document.getElementById("contentArea").innerHTML = html;
+
+    } catch {
+        showToast("Error loading dashboard", "error");
+    }
+}
+
+loadDashboard();
+</script>
+
+</body>
+</html>

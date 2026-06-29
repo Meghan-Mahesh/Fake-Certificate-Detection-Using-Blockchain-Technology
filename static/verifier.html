@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Certificate Verification - CertChain</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #141e30, #243b55);
+        }
+
+        .verify-card {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            width: 400px;
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            color: white;
+        }
+
+        h2 {
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            background: white;
+            color: black;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 6px rgba(255,255,255,0.5);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #27ae60;
+            color: white;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #219150;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .valid {
+            background: #27ae60;
+        }
+
+        .fake {
+            background: #c0392b;
+        }
+
+        .notfound {
+            background: #f39c12;
+        }
+
+        .info {
+            margin-top: 10px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            margin-top: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #ddd;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 250px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 9999;
+            animation: slideIn 0.4s ease;
+        }
+
+        .toast.success { background:#27ae60; }
+        .toast.error { background:#c0392b; }
+        .toast.warning { background:#f39c12; }
+
+        @keyframes slideIn {
+            from { opacity:0; transform:translateX(50px); }
+            to { opacity:1; transform:translateX(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="verify-card">
+    <h2>Verify Certificate</h2>
+
+    <input type="text" id="certId" placeholder="Enter Certificate ID">
+    <input type="file" id="file">
+
+    <button onclick="verify()">Verify Certificate</button>
+
+    <div id="resultBox" class="result-box"></div>
+    <div id="extraInfo" class="info"></div>
+
+    <div class="back-link" onclick="goHome()">← Back to Home</div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+let isVerifying = false;
+
+async function verify(){
+
+    if(isVerifying) return;
+
+    const certId = document.getElementById("certId").value.trim();
+    const file = document.getElementById("file").files[0];
+
+    if(!certId || !file){
+        showToast("Enter certificate ID and upload file", "warning");
+        return;
+    }
+
+    if(file.type !== "application/pdf"){
+        showToast("Only PDF files allowed", "warning");
+        return;
+    }
+
+    const box = document.getElementById("resultBox");
+    const info = document.getElementById("extraInfo");
+
+    try {
+        isVerifying = true;
+
+        showToast("Verifying certificate on blockchain...", "warning");
+
+        let formData = new FormData();
+        formData.append("cert_id", certId);
+        formData.append("file", file);
+
+        const res = await fetch("/api/verify", {
+            method:"POST",
+            body:formData
+        });
+
+        const result = await res.json();
+
+        box.style.display = "block";
+        info.innerHTML = "";
+
+        if(result.status === "error"){
+            box.className = "result-box notfound";
+            box.innerText = result.message;
+            return;
+        }
+
+        if(result.result === "VALID"){
+            box.className = "result-box valid";
+            box.innerText = "Certificate is VALID ✅";
+        } else {
+            box.className = "result-box fake";
+            box.innerText = "Certificate is FAKE ❌";
+        }
+
+        info.innerHTML = `
+            Issuer: ${result.issuer || "N/A"} <br>
+            Issued At: ${result.issued_at || "N/A"}
+        `;
+
+    } catch (error) {
+        console.error(error);
+        showToast("Server error during verification", "error");
+    } finally {
+        isVerifying = false;
+    }
+}
+
+function goHome(){
+    window.location.href="/";
+}
+</script>
+
+</body>
+</html>

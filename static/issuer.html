@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Issuer Dashboard - CertChain</title>
+<style>
+
+body{
+    margin:0;
+    font-family:Arial;
+    display:flex;
+    background:#f4f6f9;
+}
+
+/* Sidebar */
+.sidebar{
+    width:230px;
+    background:#203a43;
+    height:100vh;
+    color:white;
+    padding-top:25px;
+}
+
+.sidebar h2{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.sidebar a{
+    display:block;
+    padding:14px 20px;
+    color:white;
+    text-decoration:none;
+    cursor:pointer;
+}
+
+.sidebar a:hover,
+.sidebar a.active{
+    background:#2c5364;
+}
+
+/* Content */
+.content{
+    flex:1;
+    padding:30px;
+}
+
+.section-title{
+    padding:12px 20px;
+    border-radius:6px;
+    margin-bottom:20px;
+    color:white;
+}
+
+.dashboard-header{ background:#27ae60; }
+.table-header{ background:#2980b9; }
+.issue-header{ background:#8e44ad; }
+
+/* Cards */
+.card-container{
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+}
+
+.stat-card{
+    flex:1;
+    min-width:200px;
+    padding:25px;
+    border-radius:10px;
+    color:white;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.stat-card:hover{
+    transform:translateY(-5px);
+}
+
+.green{ background:#27ae60; }
+.purple{ background:#8e44ad; }
+
+.stat-number{
+    font-size:28px;
+    font-weight:bold;
+}
+
+/* Table */
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+th{
+    background:#2c3e50;
+    color:white;
+    padding:12px;
+}
+
+td{
+    padding:12px;
+    border-bottom:1px solid #ddd;
+}
+
+/* Form */
+input{
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+}
+
+button{
+    padding:8px 12px;
+    cursor:pointer;
+}
+
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 250px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: none;
+    z-index: 9999;
+    animation: slideIn 0.4s ease;
+}
+
+.toast.success { background:#27ae60; }
+.toast.error { background:#c0392b; }
+.toast.warning { background:#f39c12; }
+
+@keyframes slideIn {
+    from { opacity:0; transform:translateX(50px); }
+    to { opacity:1; transform:translateX(0); }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+    <h2>Issuer Panel</h2>
+    <a id="menu-dashboard" onclick="loadDashboard()">Dashboard</a>
+    <a id="menu-issued" onclick="loadIssued()">Issued Certificates</a>
+    <a id="menu-issue" onclick="loadIssueForm()">Issue Certificate</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="content" id="contentArea"></div>
+<div id="toast" class="toast"></div>
+<script>
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+function setActive(id){
+    document.querySelectorAll(".sidebar a").forEach(a=>a.classList.remove("active"));
+    if(id){
+        document.getElementById(id).classList.add("active");
+    }
+}
+
+/* DASHBOARD */
+async function loadDashboard(){
+    setActive("menu-dashboard");
+
+    try {
+        const res = await fetch("/api/issuer/stats");
+        const data = await res.json();
+
+        let html = `
+            <div class="section-title dashboard-header">
+                Issuer Dashboard
+            </div>
+
+            <div class="card-container">
+                <div class="stat-card green" onclick="loadIssued()">
+                    <div>Total Issued Certificates</div>
+                    <div class="stat-number">${data.total || 0}</div>
+                </div>
+
+                <div class="stat-card purple" onclick="loadIssueForm()">
+                    <div>Issue New Certificate</div>
+                    <div class="stat-number">+</div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById("contentArea").innerHTML = html;
+
+    } catch {
+        showToast("Error loading dashboard", "error");
+    }
+}
+
+/* ISSUED TABLE */
+async function loadIssued(){
+    setActive("menu-issued");
+
+    try {
+        const res = await fetch("/api/issuer/issued");
+        const data = await res.json();
+
+        let html = `
+            <div class="section-title table-header">
+                Issued Certificates
+            </div>
+
+            <table>
+            <tr>
+            <th>Certificate ID</th>
+            <th>Timestamp</th>
+            </tr>
+        `;
+
+        if(data.length === 0){
+            html += `<tr><td colspan="2">No certificates issued yet</td></tr>`;
+        }
+
+        data.forEach(c=>{
+            html += `
+                <tr>
+                <td>${c.certId}</td>
+                <td>${c.timestamp}</td>
+                </tr>
+            `;
+        });
+
+        html += "</table>";
+
+        document.getElementById("contentArea").innerHTML = html;
+
+    } catch {
+        showToast("Error loading certificates", "error");
+    }
+}
+
+/* ISSUE FORM */
+function loadIssueForm(){
+    setActive("menu-issue");
+
+    let html = `
+        <div class="section-title issue-header">
+            Issue Certificate
+        </div>
+
+        <input type="text" id="certId" placeholder="Certificate ID">
+        <input type="file" id="file" accept=".pdf">
+
+        <button onclick="issue()">Issue Certificate</button>
+    `;
+
+    document.getElementById("contentArea").innerHTML = html;
+}
+
+/* ISSUE FUNCTION */
+async function issue(){
+    const certId = document.getElementById("certId").value.trim();
+    const file = document.getElementById("file").files[0];
+
+    if(!certId || !file){
+        showToast("Enter certificate ID and upload file", "warning");
+        return;
+    }
+
+    if(file.type !== "application/pdf"){
+        showToast("Only PDF allowed", "warning");
+        return;
+    }
+
+    try {
+        let formData = new FormData();
+        formData.append("cert_id", certId);
+        formData.append("file", file);
+
+        showToast("Processing blockchain transaction...", "warning");
+
+        const res = await fetch("/api/issuer/issue",{
+            method:"POST",
+            body:formData
+        });
+
+        const result = await res.json();
+
+        if(result.status === "success"){
+            showToast("Certificate issued successfully!", "success");
+            loadDashboard();
+        } else {
+            showToast(result.message || "Failed to issue", "error");
+        }
+
+    } catch {
+        showToast("Server error", "error");
+    }
+}
+
+window.onload = function(){
+    loadDashboard();
+};
+</script>
+
+</body>
+</html>

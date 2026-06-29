@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Issuer Registration - CertChain</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1f4037, #99f2c8);
+        }
+
+        .register-card {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            width: 400px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            color: white;
+        }
+
+        .register-card h2 {
+            margin-bottom: 25px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(255,255,255,0.6);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-register {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-register:hover {
+            background: #219150;
+        }
+
+        .btn-login {
+            background: #f39c12;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            background: #d68910;
+        }
+
+        .back-link {
+            margin-top: 15px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #eee;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 250px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 9999;
+            animation: slideIn 0.4s ease;
+        }
+
+        .toast.success { background:#27ae60; }
+        .toast.error { background:#c0392b; }
+        .toast.warning { background:#f39c12; }
+
+        @keyframes slideIn {
+            from { opacity:0; transform:translateX(50px); }
+            to { opacity:1; transform:translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="register-card">
+    <h2>Issuer Registration</h2>
+
+    <input type="text" id="organizationName" placeholder="Organization Name">
+    
+    <select id="organizationType">
+        <option value="">Select Organization Type</option>
+        <option value="University">University</option>
+        <option value="College">College</option>
+        <option value="Institute">Institute</option>
+        <option value="Company">Company</option>
+        <option value="Training Center">Training Center</option>
+    </select>
+
+    <input type="email" id="email" placeholder="Email Address">
+    <input type="password" id="password" placeholder="Create Password">
+
+    <button class="btn-register" onclick="register()">Register</button>
+    <button class="btn-login" onclick="goLogin()">Back to Login</button>
+
+    <div class="back-link" onclick="goHome()">← Back to Home</div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+async function register(){
+    const organizationName = document.getElementById("organizationName").value.trim();
+    const organizationType = document.getElementById("organizationType").value;
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    // ✅ Validation
+    if(!organizationName || !organizationType || !email || !password){
+        showToast("Please fill all fields", "warning");
+        return;
+    }
+
+    if(password.length < 6){
+        showToast("Password must be at least 6 characters", "warning");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/register_issuer", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                organizationName,
+                organizationType,
+                email,
+                password
+            })
+        });
+
+        const result = await response.json();
+
+        if(result.status === "success"){
+            showToast("Registration successful! Waiting for admin approval.", "success");
+            setTimeout(()=>window.location.href="/issuer_login", 1000);
+        } else {
+            showToast(result.message || "Registration failed", "error");
+        }
+
+    } catch (error) {
+        console.error(error);
+        showToast("Server error", "error");
+    }
+}
+
+function goLogin(){
+    window.location.href="/issuer_login";
+}
+
+function goHome(){
+    window.location.href="/";
+}
+</script>
+
+</body>
+</html>

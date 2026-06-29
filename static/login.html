@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CertChain</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1d2671, #c33764);
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 50px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 400px;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        p {
+            color: #f0f0f0;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .role-btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s ease;
+            color: white;
+        }
+
+        .admin {
+            background: #2c3e50;
+        }
+
+        .issuer {
+            background: #27ae60;
+        }
+
+        .verifier {
+            background: #8e44ad;
+        }
+
+        .role-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .footer {
+            margin-top: 25px;
+            color: #ddd;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CertChain</h1>
+    <p>Blockchain-based Certificate Verification System</p>
+
+    <button class="role-btn admin" onclick="goAdmin()">Admin</button>
+    <button class="role-btn issuer" onclick="goIssuer()">Issuer</button>
+    <button class="role-btn verifier" onclick="goVerifier()">Verifier</button>
+
+    <div class="footer">
+        Secure • Transparent • Decentralized
+    </div>
+</div>
+
+<script>
+function goAdmin() {
+    window.location.href = "/admin_login";
+}
+
+function goIssuer() {
+    window.location.href = "/issuer_login";
+}
+
+function goVerifier() {
+    window.location.href = "/verifier";
+}
+</script>
+
+</body>
+</html>

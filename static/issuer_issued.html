@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Issued Certificates - CertChain</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1f4037, #99f2c8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 12px;
+            width: 800px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            color: black;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #27ae60;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f2f2f2;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #555;
+        }
+
+        .back-link {
+            margin-top: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: #eee;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>Issued Certificates</h2>
+
+    <table id="table">
+        <tr>
+            <th>Certificate ID</th>
+            <th>Timestamp</th>
+        </tr>
+    </table>
+
+    <div class="back-link" onclick="goBack()">← Back to Dashboard</div>
+</div>
+
+<script>
+async function loadIssued(){
+    try {
+        const response = await fetch("/api/issuer/issued");
+        const data = await response.json();
+
+        const table = document.getElementById("table");
+
+        // Clear table except header
+        table.innerHTML = `
+        <tr>
+            <th>Certificate ID</th>
+            <th>Timestamp</th>
+        </tr>`;
+
+        if(data.length === 0){
+            const row = table.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 2;
+            cell.className = "empty";
+            cell.innerText = "No certificates issued yet.";
+            return;
+        }
+
+        data.forEach(cert=>{
+            const row = table.insertRow();
+            row.insertCell(0).innerText = cert.certId;
+            row.insertCell(1).innerText = cert.timestamp;
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        const table = document.getElementById("table");
+        table.innerHTML = `
+        <tr>
+            <th>Certificate ID</th>
+            <th>Timestamp</th>
+        </tr>
+        <tr>
+            <td colspan="2" class="empty">Error loading data</td>
+        </tr>`;
+    }
+}
+
+function goBack(){
+    window.location.href="/issuer";
+}
+
+loadIssued();
+</script>
+
+</body>
+</html>

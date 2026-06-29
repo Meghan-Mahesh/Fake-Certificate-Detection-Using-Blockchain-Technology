@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# Environment variables
+.env
+
+# Python cache
+.pytest_cache/
+
+
+# OS
+.DS_Store
+Thumbs.db
+
+#smart contract address generated after deployment of  CertificateVerification.sol
+blockchain/contract_address.txt
+
+#abi.json generated after deployment of  CertificateVerification.sol
+blockchain/abi.json
+
+#database 
+database

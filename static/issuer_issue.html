@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Issue Certificate - CertChain</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #2c5364, #203a43, #0f2027);
+        }
+
+        .issue-card {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            width: 400px;
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            color: white;
+        }
+
+        h2 {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            background: white;
+            color: black;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 6px rgba(255,255,255,0.6);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            background: #8e44ad;
+            color: white;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #732d91;
+        }
+
+        .back-link {
+            margin-top: 15px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #ddd;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 250px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 9999;
+            animation: slideIn 0.4s ease;
+        }
+
+        .toast.success { background:#27ae60; }
+        .toast.error { background:#c0392b; }
+        .toast.warning { background:#f39c12; }
+
+        @keyframes slideIn {
+            from { opacity:0; transform:translateX(50px); }
+            to { opacity:1; transform:translateX(0); }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="issue-card">
+    <h2>Issue Certificate</h2>
+
+    <label>Certificate ID</label>
+    <input type="text" id="certId" placeholder="Enter Certificate ID">
+
+    <label>Upload Certificate (PDF)</label>
+    <input type="file" id="file" accept=".pdf">
+
+    <button onclick="issue()">Issue Certificate</button>
+
+    <div class="back-link" onclick="goBack()">← Back to Dashboard</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+async function issue(){
+
+    const certId = document.getElementById("certId").value;
+    const fileInput = document.getElementById("file").files[0];
+
+    if(!certId || !fileInput){
+        showToast("Please enter certificate ID and upload file", "warning");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("cert_id", certId);
+    formData.append("file", fileInput);
+
+    showToast("Processing transaction...", "warning");
+
+    const response = await fetch("/api/issuer/issue", {
+        method:"POST",
+        body:formData
+    });
+
+    const result = await response.json();
+
+    if(result.status === "success"){
+        showToast("Certificate issued successfully!", "success");
+        document.getElementById("certId").value = "";
+        document.getElementById("file").value = "";
+    } else {
+        showToast(result.message || result.error, "error");
+    }
+}
+
+function goBack(){
+    window.location.href="/issuer";
+}
+
+</script>
+
+</body>
+</html>

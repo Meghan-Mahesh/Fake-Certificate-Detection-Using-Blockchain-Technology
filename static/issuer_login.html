@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Issuer Login - CertChain</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            width: 350px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            color: white;
+        }
+
+        .login-card h2 {
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-login {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-login:hover {
+            background: #219150;
+        }
+
+        .btn-register {
+            background: #f39c12;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-register:hover {
+            background: #d68910;
+        }
+
+        .back-link {
+            margin-top: 15px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #ddd;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 250px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 9999;
+            animation: slideIn 0.4s ease;
+        }
+
+        .toast.success { background:#27ae60; }
+        .toast.error { background:#c0392b; }
+        .toast.warning { background:#f39c12; }
+
+        @keyframes slideIn {
+            from { opacity:0; transform:translateX(50px); }
+            to { opacity:1; transform:translateX(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>Issuer Login</h2>
+
+    <input type="email" id="email" placeholder="Enter Email">
+    <input type="password" id="password" placeholder="Enter Password">
+
+    <button class="btn-login" onclick="login()">Login</button>
+    <button class="btn-register" onclick="register()">Register</button>
+
+    <div class="back-link" onclick="goHome()">← Back to Home</div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+async function login(){
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if(!email || !password){
+        showToast("Please enter email and password", "warning");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/issuer/login", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({email,password})
+        });
+
+        const result = await response.json();
+
+        if(result.status === "success"){
+            showToast("Login successful", "success");
+            setTimeout(()=>window.location.href="/issuer", 800);
+        } else {
+            showToast(result.message || "Invalid credentials", "error");
+        }
+
+    } catch (error) {
+        console.error(error);
+        showToast("Server error", "error");
+    }
+}
+
+function register(){
+    window.location.href="/issuer_register";
+}
+
+function goHome(){
+    window.location.href="/";
+}
+</script>
+
+</body>
+</html>

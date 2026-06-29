@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Login - CertChain</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            width: 350px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .login-card h2 {
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4ca1af;
+            box-shadow: 0 0 5px rgba(76,161,175,0.5);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-primary {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1a252f;
+        }
+
+        .btn-secondary {
+            background: #4ca1af;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #3b8d99;
+        }
+
+        .divider {
+            margin: 20px 0;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .back-link {
+            margin-top: 15px;
+            display: inline-block;
+            font-size: 13px;
+            color: #4ca1af;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 250px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 9999;
+            animation: slideIn 0.4s ease;
+        }
+
+        .toast.success { background:#27ae60; }
+        .toast.error { background:#c0392b; }
+        .toast.warning { background:#f39c12; }
+
+        @keyframes slideIn {
+            from { opacity:0; transform:translateX(50px); }
+            to { opacity:1; transform:translateX(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>Admin Login</h2>
+
+    <input type="email" id="email" placeholder="Enter Admin Email">
+    <button class="btn-secondary" onclick="generateOTP()">Generate OTP</button>
+
+    <div class="divider">Enter OTP</div>
+
+    <input type="text" id="otp" placeholder="Enter OTP">
+    <button class="btn-primary" onclick="verifyOTP()">Login</button>
+
+    <div class="back-link" onclick="goHome()">← Back to Home</div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+function showToast(message, type="success") {
+    const toast = document.getElementById("toast");
+
+    toast.className = "toast " + type;
+    toast.innerText = message;
+    toast.style.display = "block";
+
+    setTimeout(() => {
+        toast.style.display = "none";
+    }, 3000);
+}
+
+async function generateOTP(){
+    const email = document.getElementById("email").value;
+
+    const response = await fetch("/api/admin/generate_otp", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email})
+    });
+
+    const result = await response.json();
+    showToast(result.message, result.message);
+}
+
+async function verifyOTP(){
+    const email = document.getElementById("email").value;
+    const otp = document.getElementById("otp").value;
+
+    const response = await fetch("/api/admin/verify_otp", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email,otp})
+    });
+
+    const result = await response.json();
+    showToast(result.message, result.message);
+    if(result.status === "success"){
+        window.location.href="/admin";
+    }
+}
+
+function goHome(){
+    window.location.href="/";
+}
+</script>
+
+</body>
+</html>
